@@ -180,7 +180,6 @@ public class ExtendedAttributeMapper extends AbstractIdentityProviderMapper {
         for (StringToken st : stringTokens) {
             res.append(st.getDecodedValue());
         }
-        logger.warnf("Field after processing: %s", res.toString());
 
         return res.toString();
     }
