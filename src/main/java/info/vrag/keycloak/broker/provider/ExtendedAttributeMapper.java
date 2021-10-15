@@ -155,7 +155,10 @@ public class ExtendedAttributeMapper extends AbstractIdentityProviderMapper {
     }
 
     private String getRawFieldValue(IdentityProviderMapperModel mapperModel, BrokeredIdentityContext context) {
-        String field = getJsonValueFromModel(mapperModel).trim();
+        String field = getJsonValueFromModel(mapperModel);
+        if (field == null)
+            return null;
+        field = field.trim();
         ArrayList<StringToken> stringTokens = new ArrayList<StringToken>();
 
         for (String s : field.split("\\+")) {
