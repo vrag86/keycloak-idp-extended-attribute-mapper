@@ -1,6 +1,7 @@
 package info.vrag.keycloak.broker.provider;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import info.vrag.keycloak.broker.provider.stringtoken.StringTokenField;
 import org.jboss.logging.Logger;
 import org.keycloak.broker.oidc.OIDCIdentityProvider;
 import org.keycloak.broker.provider.AbstractIdentityProviderMapper;
@@ -19,6 +20,8 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 
 public class ExtendedAttributeMapper extends AbstractIdentityProviderMapper {
@@ -155,17 +158,35 @@ public class ExtendedAttributeMapper extends AbstractIdentityProviderMapper {
     }
 
     private String getRawFieldValue(IdentityProviderMapperModel mapperModel, BrokeredIdentityContext context) {
-        String field = getJsonValueFromModel(mapperModel).trim();
-        ArrayList<StringToken> stringTokens = new ArrayList<StringToken>();
+        String field = getJsonValueFromModel(mapperModel);
+        if (field == null) {
+            return null;
+        }
+        field = field.trim();
 
+        List<StringToken> stringTokens = new ArrayList<StringToken>();
+        Pattern ternary_pattern = Pattern.compile("^(.+)\\s([<>=]=?)\\s(.+)\\s\\?\\s(.+)\\s:(.+)$");
         for (String s : field.split("\\+")) {
             s = s.trim();
+            Matcher ternary_matcher = ternary_pattern.matcher(s);
             if (s.startsWith("\"")) {
-                StringToken st = new StringToken(s, StringToken.STRING_TOKEN_TYPE.STRING);
-                String value = st.getRawValue().replaceAll("\"", "");
-                st.setDecodedValue(value);
-                stringTokens.add(st);
+                // Constant string
+                StringToken st = new StringToken(s, StringToken.STRING_TOKEN_TYPE.STRING, new StringTokenField());
+                if (st.process()) {
+                    stringTokens.add(st);
+                }
+            } else if (ternary_matcher.matches()) {
+                // Ternary operator
+                String if_op1 = ternary_matcher.group(0);
+                String operation_str = ternary_matcher.group(1);
+                String if_op2 = ternary_matcher.group(2);
+                String cond_str = ternary_matcher.group(3);
+                String else_str = ternary_matcher.group(4);
+
+
+
             } else {
+                // Json field
                 StringToken st = new StringToken(s, StringToken.STRING_TOKEN_TYPE.JSON);
                 String value = getJsonValue(st.getRawValue(), context);
 
